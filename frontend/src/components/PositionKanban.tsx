@@ -55,6 +55,15 @@ const PositionKanban: React.FC = () => {
                 const sortedSteps = (interviewFlowData?.interviewSteps || []).sort(
                     (a: InterviewStep, b: InterviewStep) => a.orderIndex - b.orderIndex
                 );
+                
+                console.log('Interview flow data:', interviewFlowData);
+                console.log('Interview steps:', sortedSteps);
+                console.log('Candidates data:', candidatesData);
+                
+                if (sortedSteps.length === 0) {
+                    console.warn('No interview steps found for this position');
+                }
+                
                 setInterviewSteps(sortedSteps);
 
                 // Initialize candidates by step
@@ -216,10 +225,18 @@ const PositionKanban: React.FC = () => {
                 </Alert>
             )}
 
+            {/* Show message if no interview steps */}
+            {interviewSteps.length === 0 && !error && (
+                <Alert variant="info" className="mb-3">
+                    <strong>No interview process configured.</strong> This position does not have any interview stages set up. Please configure the interview flow for this position.
+                </Alert>
+            )}
+
             {/* Kanban Board */}
-            <DragDropContext onDragEnd={handleDragEnd}>
-                <div className="d-flex flex-column flex-md-row overflow-auto">
-                    {interviewSteps.map((step) => (
+            {interviewSteps.length > 0 && (
+                <DragDropContext onDragEnd={handleDragEnd}>
+                    <div className="d-flex flex-column flex-md-row overflow-auto">
+                        {interviewSteps.map((step) => (
                         <div
                             key={step.id}
                             className="flex-fill mb-3 mb-md-0 me-md-3"
@@ -279,9 +296,10 @@ const PositionKanban: React.FC = () => {
                                 </Card.Body>
                             </Card>
                         </div>
-                    ))}
-                </div>
-            </DragDropContext>
+                        ))}
+                    </div>
+                </DragDropContext>
+            )}
         </Container>
     );
 };
