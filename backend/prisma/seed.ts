@@ -3,6 +3,22 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Clear existing data (in reverse order of dependencies)
+  console.log('Clearing existing data...');
+  await prisma.interview.deleteMany();
+  await prisma.application.deleteMany();
+  await prisma.employee.deleteMany();
+  await prisma.interviewStep.deleteMany();
+  await prisma.position.deleteMany();
+  await prisma.resume.deleteMany();
+  await prisma.workExperience.deleteMany();
+  await prisma.education.deleteMany();
+  await prisma.candidate.deleteMany();
+  await prisma.interviewType.deleteMany();
+  await prisma.interviewFlow.deleteMany();
+  await prisma.company.deleteMany();
+  console.log('Existing data cleared.');
+
   // Create Companies
   const company1 = await prisma.company.create({
     data: {
@@ -330,6 +346,8 @@ async function main() {
       }
     ],
   });
+
+  console.log('Seed data created successfully!');
 }
 
 main()
