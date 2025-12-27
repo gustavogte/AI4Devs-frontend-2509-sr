@@ -79,7 +79,11 @@ const PositionKanban: React.FC = () => {
                 setCandidatesByStep(stepMap);
             } catch (err: any) {
                 console.error('Error fetching position data:', err);
-                setError(err.response?.data?.message || 'Failed to load position data. Please try again.');
+                const errorMessage = err.response?.data?.message 
+                    || err.response?.data?.error 
+                    || err.message 
+                    || 'Failed to load position data. Please try again.';
+                setError(errorMessage);
             } finally {
                 setLoading(false);
             }
