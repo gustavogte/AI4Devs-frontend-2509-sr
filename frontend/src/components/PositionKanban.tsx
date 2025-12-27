@@ -14,15 +14,6 @@ interface InterviewStep {
     orderIndex: number;
 }
 
-interface InterviewFlowData {
-    positionName: string;
-    interviewFlow: {
-        id: number;
-        description: string;
-        interviewSteps: InterviewStep[];
-    };
-}
-
 interface Candidate {
     fullName: string;
     currentInterviewStep: string;
@@ -38,7 +29,6 @@ const PositionKanban: React.FC = () => {
     const [error, setError] = useState<string>('');
     const [positionName, setPositionName] = useState<string>('');
     const [interviewSteps, setInterviewSteps] = useState<InterviewStep[]>([]);
-    const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [candidatesByStep, setCandidatesByStep] = useState<Record<string, Candidate[]>>({});
 
     useEffect(() => {
@@ -63,13 +53,13 @@ const PositionKanban: React.FC = () => {
                 // flowData.interviewFlow contains the actual flow with interviewSteps
                 const interviewFlowData = flowData.interviewFlow;
                 const sortedSteps = (interviewFlowData?.interviewSteps || []).sort(
-                    (a, b) => a.orderIndex - b.orderIndex
+                    (a: InterviewStep, b: InterviewStep) => a.orderIndex - b.orderIndex
                 );
                 setInterviewSteps(sortedSteps);
 
                 // Initialize candidates by step
                 const stepMap: Record<string, Candidate[]> = {};
-                sortedSteps.forEach(step => {
+                sortedSteps.forEach((step: InterviewStep) => {
                     stepMap[step.name] = [];
                 });
 
@@ -86,7 +76,6 @@ const PositionKanban: React.FC = () => {
                     }
                 });
 
-                setCandidates(candidatesData);
                 setCandidatesByStep(stepMap);
             } catch (err: any) {
                 console.error('Error fetching position data:', err);
@@ -102,7 +91,7 @@ const PositionKanban: React.FC = () => {
     const handleDragEnd = async (result: DropResult) => {
         if (!result.destination) return;
 
-        const { source, destination, draggableId } = result;
+        const { source, destination } = result;
 
         // If dropped in the same position, do nothing
         if (source.droppableId === destination.droppableId && source.index === destination.index) {
