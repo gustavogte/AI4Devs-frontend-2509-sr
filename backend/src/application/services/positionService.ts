@@ -9,6 +9,35 @@ const calculateAverageScore = (interviews: any[]) => {
     return totalScore / interviews.length;
 };
 
+export const getAllPositionsService = async () => {
+    try {
+        const positions = await prisma.position.findMany({
+            include: {
+                company: {
+                    select: {
+                        name: true
+                    }
+                }
+            },
+            orderBy: {
+                id: 'asc'
+            }
+        });
+
+        return positions.map(position => ({
+            id: position.id,
+            title: position.title,
+            status: position.status,
+            location: position.location,
+            companyName: position.company?.name || 'Unknown',
+            applicationDeadline: position.applicationDeadline
+        }));
+    } catch (error) {
+        console.error('Error retrieving all positions:', error);
+        throw new Error('Error retrieving all positions');
+    }
+};
+
 export const getCandidatesByPositionService = async (positionId: number) => {
     try {
         const applications = await prisma.application.findMany({
@@ -47,6 +76,10 @@ export const getInterviewFlowByPositionService = async (positionId: number) => {
 
     if (!positionWithInterviewFlow) {
         throw new Error('Position not found');
+    }
+
+    if (!positionWithInterviewFlow.interviewFlow) {
+        throw new Error('Position does not have an interview flow');
     }
 
     // Formatear la respuesta para incluir el nombre de la posición y el flujo de entrevistas

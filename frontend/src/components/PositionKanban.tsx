@@ -79,10 +79,21 @@ const PositionKanban: React.FC = () => {
                 setCandidatesByStep(stepMap);
             } catch (err: any) {
                 console.error('Error fetching position data:', err);
-                const errorMessage = err.response?.data?.message 
-                    || err.response?.data?.error 
-                    || err.message 
-                    || 'Failed to load position data. Please try again.';
+                let errorMessage = 'Failed to load position data. Please try again.';
+                
+                if (err.response) {
+                    // Handle HTTP errors
+                    if (err.response.status === 404) {
+                        errorMessage = `Position with ID ${id} not found. The position may not exist in the database.`;
+                    } else if (err.response.data?.message) {
+                        errorMessage = err.response.data.message;
+                    } else if (err.response.data?.error) {
+                        errorMessage = err.response.data.error;
+                    }
+                } else if (err.message) {
+                    errorMessage = err.message;
+                }
+                
                 setError(errorMessage);
             } finally {
                 setLoading(false);

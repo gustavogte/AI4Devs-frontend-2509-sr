@@ -1,28 +1,109 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Container, Row, Col, Form, Button } from 'react-bootstrap';
+import { Card, Container, Row, Col, Form, Button, Spinner, Alert } from 'react-bootstrap';
+import { positionService } from '../services/positionService';
 
 type Position = {
+    id: number;
     title: string;
-    manager: string;
-    deadline: string;
-    status: 'Abierto' | 'Contratado' | 'Cerrado' | 'Borrador';
+    companyName: string;
+    status: string;
+    location: string;
+    applicationDeadline: string | null;
 };
-
-const mockPositions: Position[] = [
-    { title: 'Senior Backend Engineer', manager: 'John Doe', deadline: '2024-12-31', status: 'Abierto' },
-    { title: 'Junior Android Engineer', manager: 'Jane Smith', deadline: '2024-11-15', status: 'Contratado' },
-    { title: 'Product Manager', manager: 'Alex Jones', deadline: '2024-07-31', status: 'Borrador' }
-];
 
 const Positions: React.FC = () => {
     const navigate = useNavigate();
+    const [positions, setPositions] = useState<Position[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string>('');
 
-    // TODO: Replace with actual position IDs when real data is available
-    // For now, using index + 1 as placeholder ID
-    const handleViewProcess = (index: number) => {
-        navigate(`/positions/${index + 1}`);
+    useEffect(() => {
+        const fetchPositions = async () => {
+            try {
+                setLoading(true);
+                setError('');
+                const data = await positionService.getAllPositions();
+                setPositions(data);
+            } catch (err: any) {
+                console.error('Error fetching positions:', err);
+                let errorMessage = 'Failed to load positions. Please try again.';
+                
+                if (err.response) {
+                    // Handle HTTP errors
+                    if (err.response.data?.message) {
+                        errorMessage = err.response.data.message;
+                    } else if (err.response.data?.error) {
+                        errorMessage = err.response.data.error;
+                    } else if (err.response.status === 404) {
+                        errorMessage = 'Positions endpoint not found. Please check if the backend server is running.';
+                    } else if (err.response.status >= 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    }
+                } else if (err.message) {
+                    errorMessage = err.message;
+                } else if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
+                    errorMessage = 'Cannot connect to the server. Please make sure the backend is running on port 3010.';
+                }
+                
+                setError(errorMessage);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPositions();
+    }, []);
+
+    const handleViewProcess = (positionId: number) => {
+        navigate(`/positions/${positionId}`);
     };
+
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch {
+            return dateString;
+        }
+    };
+
+    const getStatusBadgeClass = (status: string) => {
+        const statusLower = status.toLowerCase();
+        if (statusLower === 'open' || statusLower === 'abierto') return 'bg-warning';
+        if (statusLower === 'filled' || statusLower === 'contratado') return 'bg-success';
+        if (statusLower === 'draft' || statusLower === 'borrador') return 'bg-secondary';
+        if (statusLower === 'closed' || statusLower === 'cerrado') return 'bg-dark';
+        return 'bg-info';
+    };
+
+    const getStatusLabel = (status: string) => {
+        const statusLower = status.toLowerCase();
+        if (statusLower === 'open') return 'Abierto';
+        if (statusLower === 'filled') return 'Contratado';
+        if (statusLower === 'draft') return 'Borrador';
+        if (statusLower === 'closed') return 'Cerrado';
+        return status;
+    };
+
+    if (loading) {
+        return (
+            <Container className="mt-5 text-center">
+                <Spinner animation="border" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </Spinner>
+            </Container>
+        );
+    }
+
+    if (error) {
+        return (
+            <Container className="mt-5">
+                <Alert variant="danger">{error}</Alert>
+            </Container>
+        );
+    }
 
     return (
         <Container className="mt-5">
@@ -52,30 +133,37 @@ const Positions: React.FC = () => {
                     </Form.Control>
                 </Col>
             </Row>
-            <Row>
-                {mockPositions.map((position, index) => (
-                    <Col md={4} key={index} className="mb-4">
-                        <Card className="shadow-sm">
-                            <Card.Body>
-                                <Card.Title>{position.title}</Card.Title>
-                                <Card.Text>
-                                    <strong>Manager:</strong> {position.manager}<br />
-                                    <strong>Deadline:</strong> {position.deadline}
-                                </Card.Text>
-                                <span className={`badge ${position.status === 'Abierto' ? 'bg-warning' : position.status === 'Contratado' ? 'bg-success' : position.status === 'Borrador' ? 'bg-secondary' : 'bg-warning'} text-white`}>
-                                    {position.status}
-                                </span>
-                                <div className="d-flex justify-content-between mt-3">
-                                    <Button variant="primary" onClick={() => handleViewProcess(index)}>
-                                        Ver proceso
-                                    </Button>
-                                    <Button variant="secondary">Editar</Button>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                ))}
-            </Row>
+            {positions.length === 0 ? (
+                <Alert variant="info" className="text-center">
+                    No hay posiciones disponibles.
+                </Alert>
+            ) : (
+                <Row>
+                    {positions.map((position) => (
+                        <Col md={4} key={position.id} className="mb-4">
+                            <Card className="shadow-sm">
+                                <Card.Body>
+                                    <Card.Title>{position.title}</Card.Title>
+                                    <Card.Text>
+                                        <strong>Empresa:</strong> {position.companyName}<br />
+                                        <strong>Ubicación:</strong> {position.location}<br />
+                                        <strong>Deadline:</strong> {formatDate(position.applicationDeadline)}
+                                    </Card.Text>
+                                    <span className={`badge ${getStatusBadgeClass(position.status)} text-white`}>
+                                        {getStatusLabel(position.status)}
+                                    </span>
+                                    <div className="d-flex justify-content-between mt-3">
+                                        <Button variant="primary" onClick={() => handleViewProcess(position.id)}>
+                                            Ver proceso
+                                        </Button>
+                                        <Button variant="secondary">Editar</Button>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    ))}
+                </Row>
+            )}
         </Container>
     );
 };
